@@ -30,41 +30,60 @@ class LempelZiv(object):
         self.verbose = verbose
         self.bitarray = Bitset()
         self.bitarray.verbose = self.verbose
+        self.bitarray.name = self.filename + '.lzv'
         self.table = table
 
         if self.filename:
             with open(self.filename, 'rb') as file:
                 self.bitarray.fromfile(file)
-                self.bitarray = self.bitarray.to01()
+                self.data = self.bitarray.to01()
         else:
-            self.bitarray = _options.text
+            self.data = _options.text
 
     def encode(self):
         position = 0
         offset = 1
         output = ''
-        self.table = list(set(self.bitarray))
+        self.table = list(set(self.data))
         self.table.sort()
-        while position + offset <= len(self.bitarray):
-            buff = self.bitarray[position:position + offset]
+        while position + offset <= len(self.data):
+            print('\r{:0.2f}  '.format(
+                100 * (position + offset) / len(self.data)), end='')
+            buff = self.data[position:position + offset]
             if not buff in self.table:
                 self.table.append(buff)
                 output += str(self.table.index(
-                    self.bitarray[position:position + offset - 1]))
+                    self.data[position:position + offset - 1]))
                 position += offset - 1
                 offset = 1
             else:
                 offset += 1
         output += str(self.table.index(
-            self.bitarray[position:position + offset]))
+            self.data[position:position + offset]))
         print(self.table)
+
+        with open(self.filename + '.table', "w") as f:
+            json.dump(self.table, f)
+
+        self.bitarray.push(output)
+        self.bitarray.to_file()
+        self.data = output
+
         return output
 
     def decode(self):
-        pass
+        table_file = self.filename.split('.')[:-1]
+        table_file = '.'.join(table_file) + '.table'
+
+        with open(table_file) as json_file:
+            self.dict_table = json.load(json_file)
+
+        with open(table_file.replace('.table', '.lzv'), 'rb') as file:
+            self.bitarray.fromfile(file)
+            self.bitarray = self.bitarray.to01()
 
     def __str__(self):
-        return self.bitarray
+        return self.data
 
 
 def main():
@@ -77,7 +96,7 @@ def main():
 
     lzv = LempelZiv(_options.filename)
     if _options.encode:
-        print(lzv.encode())
+        lzv.encode()
     else:
         lzv.decode()
 
