@@ -1,4 +1,4 @@
-# Arithmetic Coding
+# Lempel-Ziv
 Encode and decode a file using the Lempel-ziv coding algorithm
 
 
